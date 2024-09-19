@@ -45,7 +45,22 @@ public:
 };
 
 class FFTCooleyTukeyMultithreadedIterative : public FFTProvider {
+private:
+    unsigned split_pow;
+
 public:
+    FFTCooleyTukeyMultithreadedIterative(unsigned split_pow);
+    virtual std::string ident();
+    int fft(size_t count, cfval_t *input, cfval_t *output);
+};
+
+class FFTCooleyTukeySYCLIterative : public FFTProvider {
+private:
+    sycl::queue &queue;
+    unsigned split_pow;
+
+public:
+    FFTCooleyTukeySYCLIterative(sycl::queue &queue, unsigned split_pow);
     virtual std::string ident();
     int fft(size_t count, cfval_t *input, cfval_t *output);
 };

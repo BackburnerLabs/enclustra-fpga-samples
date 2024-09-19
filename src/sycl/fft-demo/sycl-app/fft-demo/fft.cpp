@@ -25,7 +25,9 @@ float FFTProvider::benchmark(size_t count, size_t n_points) {
     auto start = std::chrono::high_resolution_clock::now();
 
     for (auto i = 0; i < count; i++) {
-        this->fft(n_points, xt_data, xf_data);
+        if (this->fft(n_points, xt_data, xf_data)) {
+            return 0;
+        }
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -45,7 +47,7 @@ static size_t rev_bits(size_t val, size_t bits) {
     return res;
 }
 
-static int bit_reverse_iterative(size_t count, cfval_t *input, cfval_t *output) {
+static int bit_reverse_iterative(size_t count, const cfval_t *input, cfval_t *output) {
     if ((count == 0) || (count & (count - 1))) {
         /* Not a power of 2 */
         return -1;
@@ -58,7 +60,7 @@ static int bit_reverse_iterative(size_t count, cfval_t *input, cfval_t *output) 
     return 0;
 }
 
-static std::vector<std::vector<cfval_t>> split_problem(size_t count, cfval_t *input, size_t split_pow) {
+static std::vector<std::vector<cfval_t>> split_problem(size_t count, const cfval_t *input, size_t split_pow) {
     auto split = 1 << split_pow;
 
     /* Use bit-reversal to efficiently sort into separate vectors for parallel
@@ -252,14 +254,18 @@ int FFTCooleyTukeySplitIterative::fft(size_t count, cfval_t *input, cfval_t *out
 /*
  * Cooley-Tukey multi-threaded iterative
  */
+FFTCooleyTukeyMultithreadedIterative::FFTCooleyTukeyMultithreadedIterative(unsigned split_pow) {
+    this->split_pow = split_pow;
+}
+
 std::string FFTCooleyTukeyMultithreadedIterative::ident() {
-    return "ct_mt_iter";
+    std::string base = "ct_mt_iter ";
+    base += std::to_string(this->split_pow);
+    return base;
 }
 
 int FFTCooleyTukeyMultithreadedIterative::fft(size_t count, cfval_t *input, cfval_t *output) {
-    const auto split_pow = 3;
-
-    auto split = split_problem(count, input, split_pow);
+    auto split = split_problem(count, input, this->split_pow);
 
     auto base_split_sz = split[0].size();
 
@@ -272,6 +278,73 @@ int FFTCooleyTukeyMultithreadedIterative::fft(size_t count, cfval_t *input, cfva
     for (auto &t : threads) {
         t.join();
     }
+
+    join_problem(count, output, split_pow);
+
+    return 0;
+}
+
+/*
+ * Cooley-Tukey SYCL-parallelized iterative
+ */
+FFTCooleyTukeySYCLIterative::FFTCooleyTukeySYCLIterative(sycl::queue &queue, unsigned split_pow) :
+queue(queue) {
+    this->split_pow = split_pow;
+}
+
+std::string FFTCooleyTukeySYCLIterative::ident() {
+    std::string base = "ct_sycl_iter ";
+    base += std::to_string(this->split_pow);
+    return base;
+}
+
+int FFTCooleyTukeySYCLIterative::fft(size_t count, cfval_t *input, cfval_t *output) {
+    auto split = split_problem(count, input, this->split_pow);
+
+    auto base_split_sz = split[0].size();
+
+    /* TODO: Do this in SYCL */
+    /*for (auto i = 0; i < split.size(); i++) {
+    }*/
+
+    sycl::buffer<cfval_t> out_buff{output, sycl::range{count}};
+    sycl::buffer<cfval_t> in_buff{input, sycl::range{count}};
+
+    try {
+        this->queue.submit([&](auto &h) {
+            sycl::accessor out_acc{out_buff, h, sycl::read_write};
+            sycl::accessor in_acc{in_buff, h, sycl::read_only};
+
+            h.parallel_for(sycl::range{split.size()}, [=](sycl::id<1> idx) {
+                auto base = idx * base_split_sz;
+
+                bit_reverse_iterative(base_split_sz, &in_acc[base], &out_acc[base]);
+
+                for (auto i = 1; i <= __builtin_ctz(base_split_sz); i++) {
+                    auto m = 1 << i;
+                    auto cv = std::complex<fval_t>(0, -2. * M_PI / m);
+                    auto omega_m = std::exp(cv);
+                    for (auto k = 0; k < base_split_sz; k += m) {
+                        auto omega = std::complex<fval_t>(1., 0);
+                        for (auto j = 0; j < m / 2; j++) {
+                            auto t = omega * out_acc[base + k + j + (m/2)];
+                            auto u = out_acc[base + k + j];
+                            out_acc[base + k + j] = u + t;
+                            out_acc[base + k + j + (m/2)] = u - t;
+                            omega = omega * omega_m;
+                        }
+                    }
+                }
+            });
+        }).wait();
+
+        this->queue.throw_asynchronous();
+    } catch (const sycl::exception &e) {
+        std::cout << "Exception caught: " << e.what() << std::endl;
+        return -1;
+    }
+
+
 
     join_problem(count, output, split_pow);
 

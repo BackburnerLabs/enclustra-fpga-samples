@@ -9,8 +9,25 @@ class scalar_add;
 
 static void display_devices();
 
+int cust_device_selector(const sycl::device &dev) {
+    if (dev.has(sycl::aspect::cpu)) {
+        auto vendorName = dev.get_info<sycl::info::device::vendor>();
+        //if (vendorName.find("AMD") != std::string::npos) {
+        if (vendorName.find("hipSYCL") != std::string::npos) {
+            return 1;
+        }
+    }
+    return -1;
+}
 
 int main() {
+    //auto sycl_queue = sycl::queue{sycl::default_selector()};
+    //auto sycl_queue = sycl::queue{sycl::cpu_selector_v};
+    auto sycl_queue = sycl::queue{cust_device_selector};
+
+    std::cout << "Chosen SYCL device: "
+              << sycl_queue.get_device().get_info<sycl::info::device::name>()
+              << std::endl;
 
 #if 0
     auto fft = new FFTCooleyTukeyStackIterative();
@@ -44,7 +61,10 @@ int main() {
     fft_algos.push_back(new FFTCooleyTukeyIterative());
     //fft_algos.push_back(new FFTCooleyTukeySplitRecursive());
     //fft_algos.push_back(new FFTCooleyTukeySplitIterative());
-    fft_algos.push_back(new FFTCooleyTukeyMultithreadedIterative());
+    fft_algos.push_back(new FFTCooleyTukeyMultithreadedIterative(3));
+    fft_algos.push_back(new FFTCooleyTukeyMultithreadedIterative(4));
+    fft_algos.push_back(new FFTCooleyTukeySYCLIterative(sycl_queue, 3));
+    fft_algos.push_back(new FFTCooleyTukeySYCLIterative(sycl_queue, 4));
 
     std::cout << ", ";
     for (auto i = 0; i < fft_algos.size(); i++) {
@@ -55,7 +75,7 @@ int main() {
     }
     std::cout << std::endl;
 
-    for (auto i = 8; i <= 19; i++) {
+    for (auto i = 8; i <= 16; i++) {
         auto n_points = 1 << i;
         std::cout << n_points << ", ";
         for (auto i = 0; i < fft_algos.size(); i++) {
