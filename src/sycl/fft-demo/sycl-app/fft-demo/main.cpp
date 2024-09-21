@@ -21,9 +21,10 @@ int cust_device_selector(const sycl::device &dev) {
 }
 
 int main() {
-    //auto sycl_queue = sycl::queue{sycl::default_selector()};
+    auto sycl_queue = sycl::queue{sycl::default_selector_v};
     //auto sycl_queue = sycl::queue{sycl::cpu_selector_v};
-    auto sycl_queue = sycl::queue{cust_device_selector};
+    //auto sycl_queue = sycl::queue{sycl::gpu_selector_v};
+    //auto sycl_queue = sycl::queue{cust_device_selector};
 
     std::cout << "Chosen SYCL device: "
               << sycl_queue.get_device().get_info<sycl::info::device::name>()
