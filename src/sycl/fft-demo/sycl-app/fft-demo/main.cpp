@@ -67,7 +67,7 @@ int main() {
     fft_algos.push_back(new FFTCooleyTukeySYCLIterative(sycl_queue, 3));
     fft_algos.push_back(new FFTCooleyTukeySYCLIterative(sycl_queue, 4));
 
-    std::cout << ", ";
+    std::cout << "FFT size, ";
     for (auto i = 0; i < fft_algos.size(); i++) {
         std::cout << fft_algos[i]->ident();
         if (i != (fft_algos.size() - 1)) {

@@ -42,8 +42,16 @@ elseif(SYCL_IMPLEMENTATION MATCHES "DPCPP")
 
     set(ADD_SYCL_FLAGS TRUE)
 
-    set(SYCL_COMPILE_FLAGS "-fsycl -Wall ${WIN_FLAG}")
-    set(SYCL_LINK_FLAGS "-fsycl")
+    # TODO: Make configurable
+    #set(ONEAPI_TARGETS "amdgcn-amd-amdhsa,spir64,x86_64,spir64_gen")
+    set(ONEAPI_TARGETS "amdgcn-amd-amdhsa")
+    set(ONEAPI_BACKEND ${ONEAPI_TARGETS})
+    set(ONEAPI_ARCH "gfx1010")
+
+    set(ONEAPI_COMMON_FLAGS "-fsycl -fsycl-targets=${ONEAPI_TARGETS} -Xsycl-target-backend=${ONEAPI_BACKEND} --offload-arch=${ONEAPI_ARCH}")
+
+    set(SYCL_COMPILE_FLAGS "-Wall ${ONEAPI_COMMON_FLAGS}")
+    set(SYCL_LINK_FLAGS "${ONEAPI_COMMON_FLAGS}")
   endif()
 else()
   message(FATAL_ERROR "Unknown SYCL_IMPLEMENTATION value `${SYCL_IMPLEMENTATION}`")

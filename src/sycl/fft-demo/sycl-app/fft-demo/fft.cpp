@@ -4,7 +4,6 @@
 #include <cmath>
 #include <complex>
 #include <cstring>
-#include <stack>
 #include <string>
 #include <thread>
 #include <vector>
@@ -298,14 +297,16 @@ std::string FFTCooleyTukeySYCLIterative::ident() {
     return base;
 }
 
+/* std::complex is not fully supported in SYCL and will not work on GPU targets */
+cfval_t cust_exp(cfval_t val) {
+    fval_t exp_real = std::exp(val.real());
+    return std::complex(exp_real * std::cos(val.imag()), exp_real * std::sin(val.imag()));
+}
+
 int FFTCooleyTukeySYCLIterative::fft(size_t count, cfval_t *input, cfval_t *output) {
     auto split = split_problem(count, input, this->split_pow);
 
     auto base_split_sz = split[0].size();
-
-    /* TODO: Do this in SYCL */
-    /*for (auto i = 0; i < split.size(); i++) {
-    }*/
 
     sycl::buffer<cfval_t> out_buff{output, sycl::range{count}};
     sycl::buffer<cfval_t> in_buff{input, sycl::range{count}};
@@ -323,7 +324,7 @@ int FFTCooleyTukeySYCLIterative::fft(size_t count, cfval_t *input, cfval_t *outp
                 for (auto i = 1; i <= __builtin_ctz(base_split_sz); i++) {
                     auto m = 1 << i;
                     auto cv = std::complex<fval_t>(0, -2. * M_PI / m);
-                    auto omega_m = std::exp(cv);
+                    auto omega_m = cust_exp(cv);
                     for (auto k = 0; k < base_split_sz; k += m) {
                         auto omega = std::complex<fval_t>(1., 0);
                         for (auto j = 0; j < m / 2; j++) {
