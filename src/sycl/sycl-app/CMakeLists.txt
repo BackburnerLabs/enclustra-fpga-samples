@@ -61,5 +61,5 @@ add_compile_definitions(SYCL_IMPLEMENTATION="${SYCL_IMPLEMENTATION}")
 
 include_directories(${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR})
 
-subdirs(fft-demo)
+subdirs(fft-demo vector-demo)
 
