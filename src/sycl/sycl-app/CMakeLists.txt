@@ -44,7 +44,7 @@ elseif(SYCL_IMPLEMENTATION MATCHES "DPCPP")
 
     # TODO: Make configurable
     #set(ONEAPI_TARGETS "amdgcn-amd-amdhsa,spir64,x86_64,spir64_gen")
-    set(ONEAPI_TARGETS "amdgcn-amd-amdhsa")
+    set(ONEAPI_TARGETS "amdgcn-amd-amdhsa,x86_64")
     set(ONEAPI_BACKEND ${ONEAPI_TARGETS})
     set(ONEAPI_ARCH "gfx1010")
 
@@ -61,5 +61,5 @@ add_compile_definitions(SYCL_IMPLEMENTATION="${SYCL_IMPLEMENTATION}")
 
 include_directories(${PROJECT_BINARY_DIR} ${PROJECT_SOURCE_DIR})
 
-subdirs(fft-demo vector-demo)
+subdirs(vector-demo matrix-demo)
 
