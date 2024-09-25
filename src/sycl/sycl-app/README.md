@@ -74,10 +74,27 @@ These demos can be build using either AdaptiveCPP, or Intel oneAPI/DPCPP
 
 ### Environment setup
 
-TODO
+#### oneAPI
+
+The oneAPI toolkit can be obtained from Intel's website
+[here](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html),
+and installation instructions can be found
+[here](https://www.intel.com/content/www/us/en/developer/articles/guide/installation-guide-for-oneapi-toolkits.html).
 
 The current OneAPI target configuration expects that Codeplay's "oneAPI for AMD
-GPU's" plugin is installed.
+GPU's" plugin is installed. This can be found
+[here](https://developer.codeplay.com/products/oneapi/amd/home/),
+and setup instructions can be found
+[here](https://developer.codeplay.com/products/oneapi/amd/2024.2.1/guides/get-started-guide-amd).
+
+For nVidia (modifications to the CMakeLists.txt file are required) the plugin can be found
+[here](https://developer.codeplay.com/products/oneapi/nvidia/home/), with setup
+instructions
+[here](https://developer.codeplay.com/products/oneapi/nvidia/2024.2.1/guides/get-started-guide-nvidia).
+The necessary flags to pass to the compiler (untested) that need to be modified
+in CMakeLists.txt can be found under the "Run a Sample Application" section.
+
+Some Linux distributions may provide packages for some or all of the above.
 
 Note: For running on Arch Linux, the versions of HIP/ROCm available in the
 repositories are too new to use with the version of oneAPI in the repositories.
